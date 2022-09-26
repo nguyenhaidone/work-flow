@@ -103,9 +103,7 @@ const NodeDisplay: React.FC = () => {
     <div className="cus-start-node">
       <div className="cus-header-start-node">
         <div className="cus-icon-header-start-node">A</div>
-        <div className="cus-title-header-start-node">
-          Step 1: Open new world
-        </div>
+        <div className="cus-title-header-start-node">{node.name}</div>
         <button onClick={() => remove()}>delete</button>
       </div>
       <div className="other-node">
@@ -165,9 +163,7 @@ const ConditionNodeDisplay: React.FC = () => {
     <div className="cus-start-node">
       <div className="cus-header-start-node">
         <div className="cus-icon-header-start-node">A</div>
-        <div className="cus-title-header-start-node">
-          Step 1: Open new world
-        </div>
+        <div className="cus-title-header-start-node">{node.name}</div>
         <button onClick={() => remove()}>delete</button>
       </div>
       <div className="other-node">
@@ -223,55 +219,55 @@ const registerNodes: IRegisterNode[] = [
   },
 ];
 
-// const defaultNodes = [
-//   {
-//     id: "node-0d9d4733-e48c-41fd-a41f-d93cc4718d97",
-//     type: "start",
-//     name: "start",
-//     path: ["0"],
-//   },
-//   {
-//     id: "node-b2ffe834-c7c2-4f29-a370-305adc03c010",
-//     type: "branch",
-//     name: "Branch node",
-//     children: [
-//       {
-//         id: "node-cf9c8f7e-26dd-446c-b3fa-b2406fc7821a",
-//         type: "condition",
-//         name: "Condition node",
-//         children: [
-//           {
-//             id: "node-f227cd08-a503-48b7-babf-b4047fc9dfa5",
-//             type: "node",
-//             name: "Normal node",
-//             path: ["1", "children", "0", "children", "0"],
-//           },
-//         ],
-//         path: ["1", "children", "0"],
-//       },
-//       {
-//         id: "node-9d393627-24c0-469f-818a-319d9a678707",
-//         type: "condition",
-//         name: "Condition node",
-//         children: [],
-//         path: ["1", "children", "1"],
-//       },
-//     ],
-//     path: ["1"],
-//   },
-//   {
-//     id: "node-972401ca-c4db-4268-8780-5607876d8372",
-//     type: "node",
-//     name: "Normal node",
-//     path: ["2"],
-//   },
-//   {
-//     id: "node-b106675a-5148-4a2e-aa86-8e06abd692d1",
-//     type: "end",
-//     name: "end",
-//     path: ["3"],
-//   },
-// ];
+const defaultNodes = [
+  {
+    id: "node-0d9d4733-e48c-41fd-a41f-d93cc4718d97",
+    type: "start",
+    name: "start",
+    path: ["0"],
+  },
+  {
+    id: "node-b2ffe834-c7c2-4f29-a370-305adc03c010",
+    type: "branch",
+    name: "Branch node",
+    children: [
+      {
+        id: "node-cf9c8f7e-26dd-446c-b3fa-b2406fc7821a",
+        type: "condition",
+        name: "Condition node",
+        children: [
+          {
+            id: "node-f227cd08-a503-48b7-babf-b4047fc9dfa5",
+            type: "node",
+            name: "Normal node",
+            path: ["1", "children", "0", "children", "0"],
+          },
+        ],
+        path: ["1", "children", "0"],
+      },
+      {
+        id: "node-9d393627-24c0-469f-818a-319d9a678707",
+        type: "condition",
+        name: "Condition node",
+        children: [],
+        path: ["1", "children", "1"],
+      },
+    ],
+    path: ["1"],
+  },
+  {
+    id: "node-972401ca-c4db-4268-8780-5607876d8372",
+    type: "node",
+    name: "Normal node",
+    path: ["2"],
+  },
+  {
+    id: "node-b106675a-5148-4a2e-aa86-8e06abd692d1",
+    type: "end",
+    name: "end",
+    path: ["3"],
+  },
+];
 
 const inputNodes = [
   {
@@ -553,6 +549,11 @@ const inputNodes = [
   },
 ];
 
+interface INodeCustom {
+  obj: INode;
+  order: number;
+}
+
 const NodeForm = () => {
   const [nodes, setNodes] = useState<INode[]>(inputNodes);
 
@@ -561,13 +562,17 @@ const NodeForm = () => {
     setNodes(nodes);
   };
 
-  const listItem: any = [];
+  const listItem: INodeCustom[] = [];
+
+  let num = 0;
 
   function recursion(defaultData: any) {
     if (Array.isArray(defaultData)) {
       for (let i in defaultData) {
         const obj = defaultData[i];
-        obj.type !== "branch" && obj.name && listItem.push(obj);
+        obj.type !== "branch" &&
+          obj.name &&
+          listItem.push({ obj, order: num++ });
         if (obj.children) {
           for (let i in obj.children) {
             recursion(obj.children[i]);
@@ -576,7 +581,7 @@ const NodeForm = () => {
       }
     } else {
       const obj = defaultData;
-      obj.type !== "branch" && obj.name && listItem.push(obj);
+      obj.type !== "branch" && obj.name && listItem.push({ obj, order: num++ });
       if (obj.children) {
         recursion(obj.children);
       }
@@ -584,13 +589,102 @@ const NodeForm = () => {
   }
   recursion(nodes);
 
+  const findAllNodesNext = (listItem: INodeCustom[], currentNode: INode) => {
+    if (currentNode.type === "end") return [];
+    const nextNodes: INodeCustom[] = [];
+    if (currentNode.path && currentNode.path.length > 1) {
+      listItem.forEach((element) => {
+        if (
+          currentNode.path &&
+          element.obj.path &&
+          element.obj.path.length > currentNode.path.length &&
+          element.obj.path.toString().includes(currentNode.path.toString())
+        ) {
+          nextNodes.push(element);
+        }
+      });
+      if (nextNodes.length === 0) {
+        listItem.forEach((element) => {
+          currentNode.path &&
+            element.obj.path &&
+            element.obj.path.length === 1 &&
+            element.obj.path[0] === `${+currentNode.path[0] + 1}` &&
+            nextNodes.push(element);
+        });
+      }
+    }
+    if (nextNodes.length > 1) {
+      nextNodes.sort((a, b) => a.obj.path!.length - b.obj.path!.length);
+      const nodeFilter = nextNodes.filter(
+        (item) => item.obj.path!.length === nextNodes[0].obj.path!.length
+      );
+      return nodeFilter;
+    }
+    if (currentNode.path && currentNode.path.length === 1) {
+      const orderNode = currentNode.path[0];
+      listItem.forEach((element) => {
+        if (
+          element.obj.path &&
+          element.obj.path.length === 3 &&
+          element.obj.path[0] === `${+orderNode + 1}` &&
+          element.obj.path[1] === "children"
+        ) {
+          nextNodes.push(element);
+        }
+      });
+      if (nextNodes.length === 0) {
+        listItem.forEach((element) => {
+          element.obj.path &&
+            element.obj.path.length === 1 &&
+            element.obj.path[0] === `${+orderNode + 1}` &&
+            nextNodes.push(element);
+        });
+      }
+    }
+
+    return nextNodes;
+  };
+
+  const findNextAndCurrent = listItem.map((item) => {
+    const listNextNodes = findAllNodesNext(listItem, item.obj);
+    return {
+      current: item,
+      next: listNextNodes,
+    };
+  });
+
+  const findAllNodePrev = (
+    listNextNodeAndCur: { current: INodeCustom; next: INodeCustom[] }[],
+    currentNode: INodeCustom
+  ) => {
+    if (currentNode.obj.type === "start") return [];
+    const prevNode: INodeCustom[] = [];
+    listNextNodeAndCur.map((item) => {
+      item.next.filter(
+        (elem) =>
+          elem.order === currentNode.order && prevNode.push(item.current)
+      );
+    });
+    return prevNode;
+  };
+
+  const dataMapping = listItem.map((item) => {
+    const listNextNodes = findAllNodesNext(listItem, item.obj);
+    const listPrevNodes = findAllNodePrev(findNextAndCurrent, item);
+    return {
+      prev: listPrevNodes,
+      current: item,
+      next: listNextNodes,
+    };
+  });
+
   console.log("---------------------");
 
   console.log("Default tree:");
   console.table(nodes);
 
   console.log("Recursion:");
-  console.table(listItem);
+  console.table(dataMapping);
 
   console.log("---------------------");
 
